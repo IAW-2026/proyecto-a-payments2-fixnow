@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { revalidateTag } from "next/cache"
+import { revalidatePath } from "next/cache"
 import { PaymentStatus } from "@prisma/client" 
 
 const COMMISSION_RATE = Number(process.env.FIXNOW_COMMISSION_RATE) || 0.1
@@ -9,26 +9,26 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     message:
-      "Endpoint dev payments activo. Usá POST para crear un pago mockeado de FixNow.",
+      "Endpoint dev payments activo. Usa POST para crear un pago mockeado de FixNow.",
   })
 }
-
 export async function POST() {
   try {
-    if (process.env.NODE_ENV !== "development") {
+    // Se cambia la verificacion para usar una variable de entorno personalizada
+    if (process.env.ENABLE_MOCKS !== "true") {
       return NextResponse.json(
-        { error: "Endpoint disponible solo en desarrollo" },
+        { error: "Endpoint de pruebas deshabilitado en este entorno" },
         { status: 403 }
       )
     }
 
     const jobId = `job-dev-${Date.now()}`
-    const amount = 15000
+    const amount = 1000
     const clientId = "anonymous_client"
     const professionalId = "anonymous_professional"
     const commission = amount * COMMISSION_RATE
 
-   
+    // Persistencia del recurso de pago mockeado en la base de datos de pruebas
     const payment = await prisma.payment.create({
       data: {
         jobId,
@@ -40,13 +40,14 @@ export async function POST() {
       },
     })
 
-    // Esto limpia la caché de Next.js para que los dashboards se actualicen
+    // Se cambia la estrategia a revalidatePath para limpiar la cache de la ruta del dashboard
     try {
-      revalidateTag("pagos","max")
+      revalidatePath("/dashboard/payments")
     } catch (cacheError) {
-      console.log("Aviso de caché controlado:", cacheError)
+      console.log("Aviso de cache controlado:", cacheError)
     }
 
+    // Se devuelven las URLs correspondientes cumpliendo con los patrones RESTful y URI templates
     return NextResponse.json(
       {
         success: true,
@@ -66,13 +67,15 @@ export async function POST() {
       },
       { status: 201 }
     )
-  } catch (error: any) {
-    console.error("Error creando pago de prueba:", error)
+  } catch (error: unknown) {
+    // Se utiliza el tipado unknown para cumplir con las reglas estrictas de TypeScript
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido"
+    console.error("Error creando pago de prueba:", errorMessage)
 
     return NextResponse.json(
       {
         error: "Error creando pago de prueba",
-        details: error.message,
+        details: errorMessage,
       },
       { status: 500 }
     )

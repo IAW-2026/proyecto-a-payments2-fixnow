@@ -1,15 +1,10 @@
 import { auth } from "@clerk/nextjs/server"
-//  IMPORTACIÓN PARA EL FLUJO REAL (Comentada para desarrollo):
-// import { clerkClient, redirect } from "@clerk/nextjs/server" 
-
 import { type CleanPayment } from "@/lib/payments-service"
 import { DashboardView } from "@/components/views/dashboard-view"
 import { prisma } from "@/lib/prisma"
 import DevPaymentsPage from "./dev/payments/page" 
 
-// CONFIGURACIÓN DE ETAPAS:
-// TRUE  = Etapa actual 
-// FALSE = Etapa 3 Activa Clerk 
+// Flag de consistencia para alternar entre simulaciones locales y el entorno real de Clerk
 const MOCK_MODE = true
 
 const DEV_PROFESSIONAL_ID = "anonymous_professional"
@@ -27,7 +22,6 @@ export default async function HomePage({
   // ESCENARIO ETAPA ACTUAL: MOCK_MODE ACTIVO
   // -------------------------------------------------------------------------
   if (MOCK_MODE && !params.role) {
-
     return <DevPaymentsPage />
   }
 
@@ -35,88 +29,63 @@ export default async function HomePage({
   // ESCENARIO ETAPA 3 / VISTAS DE ROLES: FLUJO REAL CON PRISMA Y CLERK
   // -------------------------------------------------------------------------
   
-  //  MODO DESARROLLO (Actual): Determina el rol puramente por la URL
+  // Modo de desarrollo: Resolucion del rol basada de forma prioritaria en los parametros de la URL
   const currentRole = params.role === "driver" || params.role === "conductor" ? "driver" : "rider"
   
-  /* 
-  // (Etapa 3 - Descomentar cuando MOCK_MODE = false):
-  // 1. Si no hay sesión válida de Clerk, rebotar al login seguro de forma estricta
+  /* // (Etapa 3 - Descomentar cuando MOCK_MODE = false):
+  // 1. Validacion estricta de sesion para mitigar fallas de control de acceso (OWASP Top 10)
   if (!userId) {
     return redirect("/sign-in") 
   }
   
-  // 2. Consultar el rol guardado en los metadatos de Clerk
+  // 2. Consulta de metadatos seguros directamente en la sesion de Clerk
   const client = await clerkClient()
   const user = await client.users.getUser(userId)
-  const realUserRole = user.publicMetadata.role // Debería devolver "driver" o "rider"
+  const realUserRole = user.publicMetadata.role 
   
-  // 3. Cruzar el parámetro visual de la URL con la seguridad del Token de Clerk
-  // Evita que un cliente manipule la URL (?role=driver) para ver datos ajenos
+  // 3. Cruce defensivo de parametros de URL con el token firmado para prevenir escalada de privilegios
   const currentRole = params.role === "driver" && realUserRole === "driver" ? "driver" : "rider"
   */
 
   const isRider = currentRole === "rider"
   let payments: CleanPayment[] = []
 
-  // 2. Buscar datos en la base de datos mediante el puente de Prisma
-  if (isRider) {
-    //  Si está en modo mock, usa SÍ O SÍ el id de pruebas para que matchee
-    const clientId = MOCK_MODE ? DEV_CLIENT_ID : (params.client_id || userId)
+  // Resolucion de identificadores segun el rol activo y el estado del flag de pruebas
+  const targetUserId = isRider
+    ? (MOCK_MODE ? DEV_CLIENT_ID : (params.client_id || userId))
+    : (MOCK_MODE ? DEV_PROFESSIONAL_ID : (params.professional_id || userId))
 
-    if (clientId) {
-      const rawPayments = await prisma.payment.findMany({
-        where: { clientId },
-        orderBy: { createdAt: "desc" },
-      })
-      
-      payments = rawPayments.map(p => ({
-        id: p.id,
-        jobId: p.jobId,
-        clientId: p.clientId,
-        professionalId: p.professionalId,
-        amount: Number(p.amount),
-        commission: Number(p.commission || 0),
-        netAmount: Number(p.amount) - Number(p.commission || 0),
-        paidAt: p.paidAt ? p.paidAt.toISOString() : null,
-        status: p.status as any,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt
-      })) as CleanPayment[]
-    }
-  } else {
-    //  Si está en modo mock, usa SÍ O SÍ el id del profesional mockeado
-    const professionalId = MOCK_MODE ? DEV_PROFESSIONAL_ID : (params.professional_id || userId)
-
-    if (professionalId) {
-      const rawPayments = await prisma.payment.findMany({
-        where: { professionalId },
-        orderBy: { createdAt: "desc" },
-      })
-
-      payments = rawPayments.map(p => ({
-        id: p.id,
-        jobId: p.jobId,
-        clientId: p.clientId,
-        professionalId: p.professionalId,
-        amount: Number(p.amount),
-        commission: Number(p.commission || 0),
-        netAmount: Number(p.amount) - Number(p.commission || 0),
-        paidAt: p.paidAt ? p.paidAt.toISOString() : null,
-        status: p.status as any,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt
-      })) as CleanPayment[]
-    }
+  if (targetUserId) {
+    // Consulta directa a la base de datos mapeando las claves foraneas correspondientes
+    const rawPayments = await prisma.payment.findMany({
+      where: isRider ? { clientId: targetUserId } : { professionalId: targetUserId },
+      orderBy: { createdAt: "desc" },
+    })
+    
+    // Mapeo seguro y normalizacion de tipos numericos provenientes del ORM
+    payments = rawPayments.map(p => ({
+      id: p.id,
+      jobId: p.jobId,
+      clientId: p.clientId,
+      professionalId: p.professionalId,
+      amount: Number(p.amount),
+      commission: Number(p.commission || 0),
+      netAmount: Number(p.amount) - Number(p.commission || 0),
+      paidAt: p.paidAt ? p.paidAt.toISOString() : null,
+      status: p.status, 
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt
+    }))
   }
 
-  // 3. Cálculo de métricas para los tableros limpios de finanzas
+  // 计算 Metricas financieras agregadas para el renderizado del tablero
   let totalGenerated = 0
   let totalCommission = 0
   let pendingCount = 0
 
   for (const p of payments) {
-    totalGenerated += Number(p.amount)
-    totalCommission += Number(p.commission || 0)
+    totalGenerated += p.amount
+    totalCommission += p.commission
 
     if (p.status === "pending" || p.status === "processing") {
       pendingCount++
@@ -125,15 +94,13 @@ export default async function HomePage({
 
   const netAmount = totalGenerated - totalCommission
 
+  // Fragmentacion de los registros mas recientes para la vista compacta del historial
   const recentPayments = payments.slice(0, 3).map((payment) => ({
     id: payment.id,
     jobId: payment.jobId,
-    amount: Number(payment.amount),
-    commission: Number(payment.commission || 0),
-    netAmount: Number(
-      payment.netAmount ||
-        Number(payment.amount) - Number(payment.commission || 0)
-    ),
+    amount: payment.amount,
+    commission: payment.commission,
+    netAmount: payment.netAmount,
     status: payment.status,
   }))
 

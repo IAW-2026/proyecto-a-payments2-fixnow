@@ -27,15 +27,12 @@ export function PaymentTable({ payments, userRole }: PaymentTableProps) {
     return (
       <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-lg shadow-black/10">
         <h2 className="text-xl font-semibold">
-          {isRider
-            ? "No tenés pagos registrados"
-            : "No tenés cobros registrados"}
+          {isRider ? "No tenes pagos registrados" : "No tenes cobros registrados"}
         </h2>
-
         <p className="mt-2 text-sm text-muted-foreground">
           {isRider
-            ? "Cuando tengas un servicio finalizado, el pago aparecerá acá."
-            : "Cuando tengas trabajos finalizados, los cobros aparecerán acá."}
+            ? "Cuando tengas un servicio finalizado, el pago aparecera aca."
+            : "Cuando tengas trabajos finalizados, los cobros apareceran aca."}
         </p>
       </div>
     )
@@ -53,35 +50,28 @@ export function PaymentTable({ payments, userRole }: PaymentTableProps) {
             <th className="px-4 py-3 font-medium">Fecha de pago</th>
           </tr>
         </thead>
-
         <tbody>
           {payments.map((payment) => {
             return (
               <tr
                 key={payment.id}
                 onClick={() =>
-                  router.push(
-                    `/payments/success?job_id=${payment.jobId}&client_id=${payment.clientId}`
-                  )
+                  router.push(`/payments/success?job_id=${payment.jobId}&client_id=${payment.clientId}`)
                 }
                 className="border-b border-border last:border-0 transition-colors hover:bg-muted/40 cursor-pointer select-none"
               >
                 <td className="px-4 py-3 font-medium">
                   #{payment.jobId.slice(-6)}
                 </td>
-
                 <td className="px-4 py-3 text-muted-foreground">
                   {isRider ? payment.professionalId : payment.clientId}
                 </td>
-
                 <td className="px-4 py-3 font-semibold">
                   {formatCurrency(payment.amount)}
                 </td>
-
                 <td className="px-4 py-3">
-                  <PaymentStatusBadge status={payment.status as any} />
+                  <PaymentStatusBadge status={payment.status} />
                 </td>
-
                 <td className="px-4 py-3 text-muted-foreground">
                   {formatDate(payment.paidAt)}
                 </td>

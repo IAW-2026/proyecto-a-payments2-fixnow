@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { revalidateTag } from "next/cache"
+import { revalidatePath } from "next/cache"
 import { PaymentStatus } from "@prisma/client"
 import { auth } from "@clerk/nextjs/server" 
 
-// Flag de consistencia con el resto de la app
 const MOCK_MODE = true 
 
 export async function POST(request: Request) {
   try {
-    //(Etapa 3 - Descomentar cuando MOCK_MODE = false):
+    // El bloque de autenticacion de Clerk se mantiene comentado estructuralmente para la Etapa 2
     /*
     const { userId } = await auth()
     if (!userId) {
@@ -21,7 +20,6 @@ export async function POST(request: Request) {
     */
 
     const body = await request.json().catch(() => null)
-
     const paymentId = body?.paymentId
     const jobId = body?.jobId
 
@@ -32,6 +30,7 @@ export async function POST(request: Request) {
       )
     }
 
+    // Resolucion del recurso por ID unico o por ID de trabajo segun la carga util provista
     const payment = paymentId
       ? await prisma.payment.findUnique({
           where: { id: String(paymentId) },
@@ -50,16 +49,7 @@ export async function POST(request: Request) {
       )
     }
 
-    /*
-    // Evita que un cliente intente pagar el viaje de OTRO cliente interceptando la petición
-    if (!MOCK_MODE && payment.clientId !== userId) {
-      return NextResponse.json(
-        { error: "Operación prohibida. El pago no pertenece al usuario autenticado." },
-        { status: 403 }
-      )
-    }
-    */
-
+    // El recurso ya paso a estado de pagado, se retorna 409 Conflict
     if (payment.status === PaymentStatus.paid) {
       return NextResponse.json(
         {
@@ -72,58 +62,29 @@ export async function POST(request: Request) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ""
-
     if (!baseUrl) {
       return NextResponse.json(
-        {
-          error: "Falta NEXT_PUBLIC_APP_URL en .env",
-        },
+        { error: "Falta NEXT_PUBLIC_APP_URL en .env" },
         { status: 500 }
       )
     }
 
-    const successUrl = `${baseUrl}/payments/success?role=rider&job_id=${encodeURIComponent(
-      payment.jobId
-    )}&client_id=${encodeURIComponent(payment.clientId)}&amount=${Number(
-      payment.amount
-    )}`
-
-    const failureUrl = `${baseUrl}/payments/failure?role=rider&job_id=${encodeURIComponent(
-      payment.jobId
-    )}&client_id=${encodeURIComponent(payment.clientId)}`
-
-    const pendingUrl = `${baseUrl}/payments/pending?role=rider&job_id=${encodeURIComponent(
-      payment.jobId
-    )}&client_id=${encodeURIComponent(payment.clientId)}`
-
-    /*
-      ============================================================
-      MERCADO PAGO REAL — ACTIVO
-      ============================================================
-    */
-
     if (process.env.MOCK_MERCADO_PAGO === "true") {
       return NextResponse.json(
-        {
-          error:
-            "MOCK_MERCADO_PAGO está en true. Para abrir Mercado Pago real, ponelo en false.",
-        },
+        { error: "MOCK_MERCADO_PAGO esta en true. Para abrir Mercado Pago real, ponelo en false." },
         { status: 400 }
       )
     }
 
-    const mpAccessToken =
-      process.env.MERCADO_PAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN
-
+    const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN
     if (!mpAccessToken) {
       return NextResponse.json(
-        {
-          error: "Falta MERCADO_PAGO_ACCESS_TOKEN o MP_ACCESS_TOKEN en .env",
-        },
+        { error: "Falta MERCADO_PAGO_ACCESS_TOKEN o MP_ACCESS_TOKEN en .env" },
         { status: 500 }
       )
     }
 
+    // Estructura del payload requerida por la pasarela externa de Mercado Pago 
     const preferenceBody = {
       items: [
         {
@@ -134,9 +95,9 @@ export async function POST(request: Request) {
         },
       ],
       back_urls: {
-        success: successUrl,
-        failure: failureUrl,
-        pending: pendingUrl,
+        success: `${baseUrl}/payments/success?role=rider&job_id=${encodeURIComponent(payment.jobId)}&client_id=${encodeURIComponent(payment.clientId)}&amount=${Number(payment.amount)}`,
+        failure: `${baseUrl}/payments/failure?role=rider&job_id=${encodeURIComponent(payment.jobId)}&client_id=${encodeURIComponent(payment.clientId)}`,
+        pending: `${baseUrl}/payments/pending?role=rider&job_id=${encodeURIComponent(payment.jobId)}&client_id=${encodeURIComponent(payment.clientId)}`,
       },
       notification_url: `${baseUrl}/api/payments/webhook?source_news=webhooks`,
       external_reference: payment.jobId,
@@ -163,69 +124,41 @@ export async function POST(request: Request) {
     )
 
     const rawText = await response.text()
-
     let mercadoPagoData: any = null
 
     try {
       mercadoPagoData = rawText ? JSON.parse(rawText) : null
     } catch {
       return NextResponse.json(
-        {
-          error: "Mercado Pago no devolvió JSON válido",
-          mercadoPagoStatus: response.status,
-          raw: rawText.slice(0, 800),
-        },
+        { error: "Mercado Pago no devolvio JSON valido", mercadoPagoStatus: response.status },
         { status: 502 }
       )
     }
 
     if (!response.ok) {
       console.error("Error devuelto por Mercado Pago:", mercadoPagoData)
-
       return NextResponse.json(
-        {
-          error: "No se pudo crear el checkout de Mercado Pago",
-          mercadoPagoStatus: response.status,
-          mercadoPagoError: mercadoPagoData,
-          debug: {
-            baseUrl,
-            successUrl,
-            failureUrl,
-            pendingUrl,
-            notificationUrl: `${baseUrl}/api/payments/webhook?source_news=webhooks`,
-            jobId: payment.jobId,
-            amount: Number(payment.amount),
-          },
-        },
+        { error: "No se pudo crear el checkout debido a un problema con el proveedor externo", mercadoPagoStatus: response.status },
         { status: response.status }
       )
     }
 
-    const checkoutUrl =
-      mercadoPagoData?.init_point || mercadoPagoData?.sandbox_init_point
-
+    const checkoutUrl = mercadoPagoData?.init_point || mercadoPagoData?.sandbox_init_point
     if (!checkoutUrl) {
       return NextResponse.json(
-        {
-          error: "Mercado Pago no devolvió init_point ni sandbox_init_point",
-          mercadoPagoResponse: mercadoPagoData,
-        },
+        { error: "Mercado Pago no devolvio init_point ni sandbox_init_point" },
         { status: 502 }
       )
     }
 
+    // Transicion de estado de la entidad a procesando al generar exitosamente el punto de inicio de la pasarela
     await prisma.payment.update({
       where: { id: payment.id },
-      data: {
-        status: PaymentStatus.processing,
-      },
+      data: { status: PaymentStatus.processing },
     })
 
-    try {
-      revalidateTag("pagos","max")
-    } catch (cacheError) {
-      console.log("Aviso de caché controlado:", cacheError)
-    }
+    // Se purga la cache de la ruta donde el usuario ve reflejado el cambio transicional
+    revalidatePath("/dashboard/payments")
 
     return NextResponse.json(
       {
@@ -237,13 +170,14 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     )
-  } catch (error: any) {
-    console.error("Error crítico en POST /api/payments/checkout:", error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido"
+    console.error("Error critico en POST /api/payments/checkout:", errorMessage)
 
     return NextResponse.json(
       {
         error: "Internal Server Error",
-        details: error?.message || "Error desconocido",
+        details: "Error interno al procesar la solicitud de cobro",
       },
       { status: 500 }
     )

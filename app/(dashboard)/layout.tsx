@@ -1,4 +1,4 @@
-"use client" // Asegurate de tenerlo arriba si usás usePathname
+"use client"
 
 import { usePathname } from "next/navigation"
 import { AppSidebar } from "@/components/layout/app-sidebar"
@@ -10,8 +10,12 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
 
-  // SI LA RUTA ES EL CHECKOUT, NO RENDERIZAMOS LA BARRA LATERAL
-  const isCheckoutPage = pathname.includes("/payments/summary") || pathname.includes("/checkout")
+  // Se centraliza de manera declarativa que pantallas no deben renderizar el menu lateral del sistema
+  const isCheckoutPage = 
+    pathname.includes("/payments/summary") || 
+    pathname.includes("/checkout") ||
+    pathname.includes("/payments/success") ||
+    pathname.includes("/dev/payments")
 
   if (isCheckoutPage) {
     return (
@@ -23,7 +27,7 @@ export default function DashboardLayout({
     )
   }
 
-  // Flujo normal para el resto de las pantallas (Resumen, Historial, etc.)
+  // Flujo normal de renderizado modular para las pantallas internas del panel de control financiero
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       <AppSidebar />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import { AlertCircle, CreditCard, ShieldCheck, Wrench } from "lucide-react"
 
@@ -22,23 +22,6 @@ export default function CheckoutJobPage() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  //  Esconde la barra lateral por CSS al entrar y la restaura al salir
-  useEffect(() => {
-    // Buscamos el elemento <aside> (la barra lateral) en el documento
-    const sidebar = document.querySelector("aside")
-    
-    if (sidebar) {
-      sidebar.style.display = "none" // La ocultamos por completo
-    }
-
-
-    return () => {
-      if (sidebar) {
-        sidebar.style.display = "flex" // La volvemos a encender para el resto de la app
-      }
-    }
-  }, [])
 
   const rawJobId = params.jobId
   const jobId = Array.isArray(rawJobId) ? rawJobId[0] : String(rawJobId)
@@ -73,7 +56,7 @@ export default function CheckoutJobPage() {
 
       if (!rawText.trim()) {
         throw new Error(
-          `El endpoint /api/payments/checkout respondió vacío. Status: ${response.status}.`
+          `El endpoint /api/payments/checkout respondio vacio. Status: ${response.status}.`
         )
       }
 
@@ -82,16 +65,12 @@ export default function CheckoutJobPage() {
           data = JSON.parse(rawText)
         } catch {
           throw new Error(
-            `El endpoint devolvió JSON inválido. Status: ${
-              response.status
-            }. Respuesta: ${rawText.slice(0, 250)}`
+            `El endpoint devolvio JSON invalido. Status: ${response.status}. Respuesta: ${rawText.slice(0, 250)}`
           )
         }
       } else {
         throw new Error(
-          `El endpoint no devolvió JSON. Status: ${
-            response.status
-          }. Respuesta: ${rawText.slice(0, 250)}`
+          `El endpoint no devolvio JSON. Status: ${response.status}. Respuesta: ${rawText.slice(0, 250)}`
         )
       }
 
@@ -113,18 +92,15 @@ export default function CheckoutJobPage() {
       }
 
       if (!data.checkout_url) {
-        throw new Error("El backend no devolvió checkout_url.")
+        throw new Error("El backend no devolvio checkout_url.")
       }
 
+      // Redireccion controlada hacia el flujo seguro e independiente de la pasarela de pagos
       window.location.href = data.checkout_url
-    } catch (err) {
-      console.error("Error al conectar con la pasarela:", err)
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Error inesperado al generar el checkout."
-      )
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error inesperado al generar el checkout"
+      console.error("Error al conectar con la pasarela:", errorMessage)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

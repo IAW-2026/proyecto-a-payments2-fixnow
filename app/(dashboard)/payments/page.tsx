@@ -8,17 +8,20 @@ import { PaymentsView } from "@/components/views/payments-view"
 const DEV_PROFESSIONAL_ID = "anonymous_professional"
 const DEV_CLIENT_ID = "anonymous_client"
 
+interface SearchParamsProps {
+  role?: string
+  client_id?: string
+  clientId?: string
+  professional_id?: string
+  professionalId?: string
+}
+
 export default async function PaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    role?: string
-    client_id?: string
-    clientId?: string
-    professional_id?: string
-    professionalId?: string
-  }>
+  searchParams: Promise<SearchParamsProps>
 }) {
+  // Se espera la resolucion asincronica de los parametros de busqueda de la URL según la arquitectura del framework
   const params = await searchParams
   const { userId } = await auth()
 
@@ -41,7 +44,7 @@ export default async function PaymentsPage({
         <h1 className="text-2xl font-bold">No se pudieron cargar los pagos</h1>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          No se encontró un usuario autenticado.
+          No se encontro un usuario autenticado.
         </p>
       </div>
     )

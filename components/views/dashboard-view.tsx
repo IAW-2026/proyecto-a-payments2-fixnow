@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
 import { ArrowLeft } from "lucide-react"
 
@@ -68,7 +69,7 @@ export function DashboardView({
         {
           label: "Ganancia neta",
           value: formatCurrency(netAmount),
-          description: "Dinero accredited en tu cuenta",
+          description: "Dinero acreditado en tu cuenta",
         },
         {
           label: "Costo de plataforma",
@@ -79,26 +80,24 @@ export function DashboardView({
 
   return (
     <div className="space-y-10">
-      
-     
       <PageHeader
         title={isClient ? "Panel de Cliente" : "Resumen de pagos"}
         subtitle={
           isClient 
             ? "Información general de tus gastos en la cuenta." 
-            : "Vista general de tus movimientos monetarios inmediatos en la plataforma."
+            : "Vista general de tus movimientos movimientos monetarios inmediatos."
         }
       >
-        <a
+        {/* Optimizacion de navegacion interna mediante el uso de Link para evitar destruccion del estado */}
+        <Link
           href="https://www.google.com"
           className="group flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold shadow-sm hover:bg-muted hover:text-foreground transition-all"
         >
           <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
           <span>Volver a App {isClient ? "Cliente" : "Profesional"}</span>
-        </a>
+        </Link>
       </PageHeader>
 
-      {/* 2 columnas para Cliente, 3 columnas bien distribuidas para profesional */}
       <section className={`grid gap-4 ${isClient ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {summaryCards.map((card) => (
           <div
@@ -115,7 +114,6 @@ export function DashboardView({
           </div>
         ))}
       </section>
-
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/5">
         <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">

@@ -37,13 +37,13 @@ export function PayWithMercadoPagoButton({
       }
 
       if (!data.checkout_url) {
-        throw new Error("Mercado Pago no devolvió una URL de checkout")
+        throw new Error("Mercado Pago no devolvio una URL de checkout")
       }
 
       window.location.href = data.checkout_url
     } catch (error) {
       console.error("Error iniciando pago:", error)
-      alert("No se pudo iniciar el pago. Intentá nuevamente.")
+      alert("No se pudo iniciar el pago. Intenta nuevamente.")
     } finally {
       setLoading(false)
     }

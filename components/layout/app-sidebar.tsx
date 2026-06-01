@@ -7,7 +7,6 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { CreditCard, LayoutDashboard } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-// CONFIGURACIÓN DE DESARROLLO 
 const MOCK_MODE = true
 const DEV_PROFESSIONAL_ID = "anonymous_professional"
 const DEV_CLIENT_ID = "anonymous_client"
@@ -25,15 +24,10 @@ export function AppSidebar({ forcedRole }: AppSidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const clientId =
-    searchParams.get("client_id") || searchParams.get("clientId")
-
-  const professionalId =
-    searchParams.get("professional_id") || searchParams.get("professionalId")
-
+  const clientId = searchParams.get("client_id") || searchParams.get("clientId")
+  const professionalId = searchParams.get("professional_id") || searchParams.get("professionalId")
   const urlRole = searchParams.get("role")?.toLowerCase()
 
-  //  VALIDACIÓN CLAVE: ¿Estamos en la pantalla de mocks a secas?
   const isLaboratorio = !urlRole && !clientId && !professionalId && pathname === "/"
 
   const inferredRole = clientId
@@ -49,18 +43,14 @@ export function AppSidebar({ forcedRole }: AppSidebarProps) {
     "driver"
   ).toLowerCase()
 
-  //  Modificamos buildHref para asegurar que arrastre los IDs de prueba dinámicamente
   function buildHref(href: string) {
     const params = new URLSearchParams()
-
     params.set("role", role)
 
     if (role === "rider") {
       const activeClientId = clientId || (MOCK_MODE ? DEV_CLIENT_ID : "")
       if (activeClientId) params.set("client_id", activeClientId)
-    }
-
-    if (role !== "rider") {
+    } else {
       const activeProfId = professionalId || (MOCK_MODE ? DEV_PROFESSIONAL_ID : "")
       if (activeProfId) params.set("professional_id", activeProfId)
     }
@@ -78,12 +68,10 @@ export function AppSidebar({ forcedRole }: AppSidebarProps) {
           height={32}
           className="rounded-lg"
         />
-
         <div className="min-w-0">
           <span className="block font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight">
             FixNow
           </span>
-
           <span className="block text-xs text-muted-foreground">
             Payments App
           </span>
@@ -91,7 +79,6 @@ export function AppSidebar({ forcedRole }: AppSidebarProps) {
       </div>
 
       <nav className="flex-1 space-y-1 p-4">
-        {/* Ocultamos las pestañas reales si estamos en el Lab raíz */}
         {isLaboratorio ? (
           <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-blue-500/30 bg-muted/50 px-3 py-6 text-center">
             <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 font-mono">
@@ -99,10 +86,8 @@ export function AppSidebar({ forcedRole }: AppSidebarProps) {
             </p>
           </div>
         ) : (
-          /* SI YA HAY ROL: Mostramos el menú normal de la aplicación */
           navItems.map((item) => {
             const Icon = item.icon
-
             const isActive =
               item.href === "/"
                 ? pathname === "/"

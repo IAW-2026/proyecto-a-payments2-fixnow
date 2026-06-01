@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
+    // Se da soporte analitico a variantes de parametros tipicas del frontend
     const jobId = searchParams.get("job_id") || searchParams.get("jobId")
     const collectionId = searchParams.get("collection_id") || searchParams.get("collectionId")
 
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     let payment = null
 
-    // Buscamos en la base de datos según el parámetro que nos mande el frontend
+    // Recuperacion de la entidad segun la estrategia de indexacion provista por la URL de consulta
     if (jobId) {
       payment = await prisma.payment.findFirst({
         where: { jobId: jobId },
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    
     return NextResponse.json({
       found: true,
       payment: {
@@ -49,10 +51,12 @@ export async function GET(request: NextRequest) {
         createdAt: payment.createdAt.toISOString(),
       },
     })
-  } catch (error: any) {
-    console.error("Error en la API de status de pagos:", error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Error desconocido"
+    console.error("Error en la API de status de pagos:", errorMessage)
+    
     return NextResponse.json(
-      { error: "Error interno del servidor", details: error.message },
+      { error: "Error interno del servidor", details: "No se pudo recuperar el estado del pago" },
       { status: 500 }
     )
   }

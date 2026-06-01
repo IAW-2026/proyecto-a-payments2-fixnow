@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import {
   AlertCircle,
   CheckCircle2,
@@ -35,7 +35,6 @@ type PaymentStatusResponse = {
 
 export default function SuccessPage() {
   const searchParams = useSearchParams()
-  const router = useRouter()
 
   const jobId =
     searchParams.get("job_id") ||
@@ -61,8 +60,7 @@ export default function SuccessPage() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [payment, setPayment] =
-    useState<PaymentStatusResponse["payment"]>(null)
+  const [payment, setPayment] = useState<PaymentStatusResponse["payment"]>(null)
 
   useEffect(() => {
     async function loadPaymentStatus() {
@@ -72,11 +70,9 @@ export default function SuccessPage() {
         if (jobId) {
           statusUrl = `/api/payments/status?job_id=${encodeURIComponent(jobId)}`
         } else if (collectionId) {
-          statusUrl = `/api/payments/status?collection_id=${encodeURIComponent(
-            collectionId
-          )}`
+          statusUrl = `/api/payments/status?collection_id=${encodeURIComponent(collectionId)}`
         } else {
-          setError("No se recibió un identificador válido del pago.")
+          setError("No se recibio un identificador valido del pago.")
           return
         }
 
@@ -91,9 +87,7 @@ export default function SuccessPage() {
         const data: PaymentStatusResponse = await response.json()
 
         if (!response.ok) {
-          throw new Error(
-            data.error || "No se pudo consultar el estado del pago."
-          )
+          throw new Error(data.error || "No se pudo consultar el estado del pago.")
         }
 
         if (!data.found || !data.payment) {
@@ -102,14 +96,10 @@ export default function SuccessPage() {
         }
 
         setPayment(data.payment)
-      } catch (error) {
-        console.error("Error consultando estado del pago:", error)
-
-        setError(
-          error instanceof Error
-            ? error.message
-            : "No se pudo consultar el estado del pago."
-        )
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : "Error desconocido"
+        console.error("Error consultando estado del pago:", errorMessage)
+        setError(errorMessage)
       } finally {
         setLoading(false)
       }
@@ -122,17 +112,12 @@ export default function SuccessPage() {
     window.print()
   }
 
-  // viewSummaryHref ahora apunta a la raíz "/" que mapea a tu página principal
   const backToClientAppHref = returnUrl || "https://google.com"
   const viewPaymentsHref = `/payments?role=rider&client_id=${encodeURIComponent(clientId)}`
   const viewSummaryHref = `/?role=rider&client_id=${encodeURIComponent(clientId)}`
   
   const retryPaymentHref = payment?.jobId
-    ? `/payments/checkout/${encodeURIComponent(
-        payment.jobId
-      )}?amount=${encodeURIComponent(
-        payment.amount
-      )}&client_id=${encodeURIComponent(clientId)}`
+    ? `/payments/checkout/${encodeURIComponent(payment.jobId)}?amount=${encodeURIComponent(payment.amount)}&client_id=${encodeURIComponent(clientId)}`
     : viewPaymentsHref
 
   if (loading) {
@@ -172,7 +157,6 @@ export default function SuccessPage() {
   }
 
   const status = payment?.status || "processing"
-
   const isPaid = status === "paid"
   const isPending = status === "pending" || status === "processing"
   const isFailed = status === "failed"
@@ -182,14 +166,6 @@ export default function SuccessPage() {
 
   return (
     <div className="relative flex min-h-[70vh] flex-col items-center justify-center bg-slate-50 p-4 antialiased">
-      
-      <style jsx global>{`
-        aside, [class*="sidebar"], nav {
-          pointer-events: none !important;
-          opacity: 0.6 !important;
-        }
-      `}</style>
-
       <div
         id="receipt-print-area"
         className="flex w-full max-w-md flex-col items-center rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-xl"
@@ -220,10 +196,8 @@ export default function SuccessPage() {
 
         <p className="mt-1 text-sm text-slate-400">
           {isPaid && "El pago fue confirmado correctamente por FixNow."}
-          {isPending &&
-            "Mercado Pago todavía está procesando la operación. Podés volver a revisar en unos instantes."}
-          {isFailed &&
-            "No pudimos acreditar este pago. Podés volver a intentarlo desde la pantalla de pagos."}
+          {isPending && "Mercado Pago todavia esta procesando la operacion. Podes volver a revisar en unos instantes."}
+          {isFailed && "No pudimos acreditar este pago. Podes volver a intentarlo desde la pantalla de pagos."}
         </p>
 
         <div className="my-5 w-full border-b border-dashed border-slate-200" />
@@ -283,6 +257,7 @@ export default function SuccessPage() {
 
         {isPaid && (
           <button
+            type="button"
             onClick={handleDownloadPDF}
             className="group mt-4 flex cursor-pointer items-center gap-2 text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700 print:hidden"
           >

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 
 type DevPaymentResponse = {
@@ -25,19 +25,6 @@ export default function DevPaymentsPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<DevPaymentResponse | null>(null)
 
-  // Oculta la barra lateral en esta vista y la devuelve al salir
-  useEffect(() => {
-    const sidebar = document.querySelector("aside")
-    if (sidebar) {
-      sidebar.style.display = "none"
-    }
-    return () => {
-      if (sidebar) {
-        sidebar.style.display = "flex"
-      }
-    }
-  }, [])
-
   async function createDevPayment() {
     try {
       setLoading(true)
@@ -56,10 +43,7 @@ export default function DevPaymentsPage() {
         data = JSON.parse(rawText)
       } else {
         throw new Error(
-          `El endpoint no devolvió JSON. Status: ${response.status}. Respuesta: ${rawText.slice(
-            0,
-            160
-          )}`
+          `El endpoint no devolvio JSON. Status: ${response.status}. Respuesta: ${rawText.slice(0, 160)}`
         )
       }
 
@@ -68,13 +52,13 @@ export default function DevPaymentsPage() {
       }
 
       setResult(data)
-    } catch (error) {
+    } catch (error: unknown) {
+      // Unificacion de la captura de excepciones tipando la variable como unknown para mantener robustez
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
+      
       setResult({
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Error creando pago de prueba",
+        error: errorMessage,
       })
     } finally {
       setLoading(false)
@@ -84,7 +68,6 @@ export default function DevPaymentsPage() {
   const createdPayment = result?.success && result.payment ? result.payment : null
 
   return (
-
     <div className="mx-auto flex min-h-[85vh] w-full max-w-2xl flex-col justify-center space-y-6 px-4 py-8">
       
       {/* Panel de control de simulaciones */}
@@ -94,10 +77,9 @@ export default function DevPaymentsPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           Esta pantalla crea pagos de prueba con datos mockeados de FixNow.
           El checkout y el webhook siguen siendo reales con Mercado Pago.
-          Podes acceder a panel de cliente o profesional para ver cómo se reflejan estos pagos en cada cuenta. 
+          Podes acceder a panel de cliente o profesional para ver como se reflejan estos pagos en cada cuenta. 
         </p>
 
-  
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             type="button"
@@ -130,7 +112,7 @@ export default function DevPaymentsPage() {
         </div>
       )}
 
-      {/* CARD INFERIOR: Recibo y checkout específico del último pago */}
+      {/* Recibo y checkout especifico del ultimo pago generado */}
       {createdPayment && (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-lg">
           <h2 className="text-lg font-semibold">Pago de prueba creado</h2>
@@ -167,8 +149,8 @@ export default function DevPaymentsPage() {
           </div>
 
           <p className="mt-4 text-xs text-muted-foreground">
-            Al tocar “Ir al checkout real”, vas a la pantalla de FixNow. Desde
-            ahí, “Pagar con Mercado Pago” abre Mercado Pago real.
+            Al tocar IR AL CHECKOUT REAL, vas a la pantalla de FixNow. Desde
+            ahi, PAGAR CON MERCADO PAGO abre Mercado Pago real.
           </p>
         </div>
       )}

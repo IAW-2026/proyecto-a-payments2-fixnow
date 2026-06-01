@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
+// Configuracion de fuentes optimizadas integradas en el pipeline de Next.js para mitigar el CLS
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-display",
@@ -33,13 +34,12 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html
-        lang="es"
-        className={`${spaceGrotesk.variable} ${inter.variable} bg-background`}
-      >
-        <body className="font-sans antialiased">
+      <html lang="es">
+        {/* Se trasladan las variables de las fuentes al body para asegurar una correcta hidratacion del DOM */}
+        <body className={`${spaceGrotesk.variable} ${inter.variable} bg-background font-sans antialiased`}>
           {children}
-          {process.env.NODE_ENV === "production" && <Analytics />}
+          {/* El componente maneja de forma interna la exclusion del entorno de desarrollo local */}
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>
