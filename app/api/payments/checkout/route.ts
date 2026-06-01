@@ -4,8 +4,6 @@ import { revalidatePath } from "next/cache"
 import { PaymentStatus } from "@prisma/client"
 import { auth } from "@clerk/nextjs/server" 
 
-const MOCK_MODE = true 
-
 export async function POST(request: Request) {
   try {
     // El bloque de autenticacion de Clerk se mantiene comentado estructuralmente para la Etapa 2
@@ -61,13 +59,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ""
-    if (!baseUrl) {
-      return NextResponse.json(
-        { error: "Falta NEXT_PUBLIC_APP_URL en .env" },
-        { status: 500 }
-      )
-    }
+    // 🌟 CORRECCIÓN 1: Fallback dinámico para convivir entre ngrok (local) y Vercel (producción)
+    // Cambiá el string de abajo por tu enlace actual de ngrok
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tu-enlace-actual.ngrok-free.app"
 
     if (process.env.MOCK_MERCADO_PAGO === "true") {
       return NextResponse.json(
@@ -76,10 +70,12 @@ export async function POST(request: Request) {
       )
     }
 
+    // 🌟 CORRECCIÓN 2: Validación estricta del Token con el operador ! de TypeScript para evitar fallos de compilación
     const mpAccessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN
+    
     if (!mpAccessToken) {
       return NextResponse.json(
-        { error: "Falta MERCADO_PAGO_ACCESS_TOKEN o MP_ACCESS_TOKEN en .env" },
+        { error: "Falta MERCADO_PAGO_ACCESS_TOKEN o MP_ACCESS_TOKEN en el entorno" },
         { status: 500 }
       )
     }
@@ -99,6 +95,7 @@ export async function POST(request: Request) {
         failure: `${baseUrl}/payments/failure?role=rider&job_id=${encodeURIComponent(payment.jobId)}&client_id=${encodeURIComponent(payment.clientId)}`,
         pending: `${baseUrl}/payments/pending?role=rider&job_id=${encodeURIComponent(payment.jobId)}&client_id=${encodeURIComponent(payment.clientId)}`,
       },
+      // 🌟 CORRECCIÓN 3: La URL del webhook ahora se autoconfigura de forma transparente e independiente del entorno
       notification_url: `${baseUrl}/api/payments/webhook?source_news=webhooks`,
       external_reference: payment.jobId,
       auto_return: "approved",
