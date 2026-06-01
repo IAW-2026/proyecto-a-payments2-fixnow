@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  --background: #031d44;
+  --foreground: #f8fafc;
+
+  --card: #04395e;
+  --card-foreground: #f8fafc;
+
+  --popover: #04395e;
+  --popover-foreground: #f8fafc;
+
+  --primary: #70a288;
+  --primary-foreground: #031d44;
+
+  --secondary: #0b4f78;
+  --secondary-foreground: #f8fafc;
+
+  --muted: #123f63;
+  --muted-foreground: #cbd5e1;
+
+  --accent: #70a288;
+  --accent-foreground: #031d44;
+
+  --destructive: #d5896f;
+  --destructive-foreground: #031d44;
+
+  --border: #1d577a;
+  --input: #1d577a;
+  --ring: #70a288;
+
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+/* 🟢 Estilos globales estándar */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* 🟢 Configuración limpia para la impresión del Comprobante */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  #receipt-print-area, #receipt-print-area * {
+    visibility: visible;
+  }
+  
+  #receipt-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  #receipt-print-area button {
+    display: none !important;
+  }
+}
