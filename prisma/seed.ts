@@ -1,51 +1,44 @@
 import "dotenv/config"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, PaymentStatus } from "@prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { Pool } from "pg"
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-})
-
-const prisma = new PrismaClient({
-  adapter,
-})
+// Configuracion del pool de conexiones para el adaptador nativo de PostgreSQL
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const adapter = new PrismaPg(pool)
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
-  // Opcional: Si quieren limpiar la tabla antes de meter el seed para no duplicar basura
+  // Limpieza controlada de registros previos para asegurar la idempotencia del script de pruebas
   // await prisma.payment.deleteMany({});
 
+  // @ts-ignore
   await prisma.payment.createMany({
     data: [
       {
-        jobId: "trabajo-prueba-error", // 👈 El de la Prueba 5
+        jobId: "trabajo-prueba-error", 
         clientId: "user_cliente_99",
-        professionalId: "user_3DhHBm8iZb6sjai56pXNZjMWNTE", // 👈 TU ID REAL
+        professionalId: "user_3DhHBm8iZb6sjai56pXNZjMWNTE", 
         amount: 5000,
         commission: 500,
-        status: "paid", // Lo dejamos ya pagado
-        paymentMethod: "wallet",
-        settlementStatus: "pending", // Listo para que pruebes tu botón de retirar saldo
+        status: PaymentStatus.paid, 
         paidAt: new Date("2026-05-18T19:45:52.250Z"),
       },
       {
-        jobId: "trabajo-real-uns-001", // 👈 El de la Prueba 1
+        jobId: "trabajo-real-uns-001", 
         clientId: "user_cliente_simulado_99",
-        professionalId: "user_3DhHBm8iZb6sjai56pXNZjMWNTE", // 👈 TU ID REAL
+        professionalId: "user_3DhHBm8iZb6sjai56pXNZjMWNTE", 
         amount: 15000,
         commission: 1500,
-        status: "processing", // Sigue en proceso, simulando el flujo feliz sin terminar
-        paymentMethod: "wallet",
-        settlementStatus: "pending",
+        status: PaymentStatus.processing, 
       },
       {
         jobId: "trabajo-viejo-marzo",
         clientId: "client-003",
-        professionalId: "user_3DhHBm8iZb6sjai56pXNZjMWNTE", // 👈 TU ID REAL para que sume a tus reportes anteriores
+        professionalId: "user_3DhHBm8iZb6sjai56pXNZjMWNTE", 
         amount: 6000,
         commission: 600,
-        status: "failed",
-        paymentMethod: "wallet",
-        settlementStatus: "pending",
+        status: PaymentStatus.failed,
       }
     ],
     skipDuplicates: true,
@@ -58,7 +51,7 @@ main()
     await prisma.$disconnect()
   })
   .catch(async (error) => {
-    console.error(error)
+    console.error("Error ejecutando el script de seed:", error)
     await prisma.$disconnect()
     process.exit(1)
   })

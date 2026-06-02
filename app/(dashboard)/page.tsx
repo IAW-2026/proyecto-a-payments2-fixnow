@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { auth } from "@clerk/nextjs/server"
 import { type CleanPayment } from "@/lib/payments-service"
 import { DashboardView } from "@/components/views/dashboard-view"
@@ -9,6 +10,10 @@ const MOCK_MODE = true
 
 const DEV_PROFESSIONAL_ID = "anonymous_professional"
 const DEV_CLIENT_ID = "anonymous_client"
+
+
+// De esta forma, el build no intenta compilarla de forma estática en frío y pasa en verde de una.
+export const dynamic = "force-dynamic"
 
 export default async function HomePage({
   searchParams,
@@ -22,14 +27,18 @@ export default async function HomePage({
   // ESCENARIO ETAPA ACTUAL: MOCK_MODE ACTIVO
   // -------------------------------------------------------------------------
   if (MOCK_MODE && !params.role) {
-    return <DevPaymentsPage />
+    return (
+      <Suspense fallback={<div>Cargando entorno de desarrollo...</div>}>
+        <DevPaymentsPage />
+      </Suspense>
+    )
   }
 
   // -------------------------------------------------------------------------
   // ESCENARIO ETAPA 3 / VISTAS DE ROLES: FLUJO REAL CON PRISMA Y CLERK
   // -------------------------------------------------------------------------
   
-  // Modo de desarrollo: Resolucion del rol basada de forma prioritaria en los parametros de la URL
+  // Modo de desarrollo: Resolucion del rol basada de forma prioritario en los parametros de la URL
   const currentRole = params.role === "driver" || params.role === "conductor" ? "driver" : "rider"
   
   /* // (Etapa 3 - Descomentar cuando MOCK_MODE = false):
@@ -78,7 +87,7 @@ export default async function HomePage({
     }))
   }
 
-  // 计算 Metricas financieras agregadas para el renderizado del tablero
+  // Metricas financieras agregadas para el renderizado del tablero
   let totalGenerated = 0
   let totalCommission = 0
   let pendingCount = 0

@@ -16,12 +16,16 @@ interface SearchParamsProps {
   professionalId?: string
 }
 
+// Forzamos a Next.js a tratar esta ruta como dinámica. 
+// Esto evita de raíz que intente pre-renderizarla de forma estática en el servidor sin la URL.
+export const dynamic = "force-dynamic"
+
 export default async function PaymentsPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParamsProps>
 }) {
-  // Se espera la resolucion asincronica de los parametros de busqueda de la URL según la arquitectura del framework
+  // Se espera la resolución asincrónica de los parámetros de búsqueda de la URL
   const params = await searchParams
   const { userId } = await auth()
 
@@ -42,9 +46,8 @@ export default async function PaymentsPage({
     return (
       <div className="rounded-2xl border border-border bg-card p-6">
         <h1 className="text-2xl font-bold">No se pudieron cargar los pagos</h1>
-
         <p className="mt-2 text-sm text-muted-foreground">
-          No se encontro un usuario autenticado.
+          No se encontró un usuario autenticado.
         </p>
       </div>
     )
