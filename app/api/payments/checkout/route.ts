@@ -59,9 +59,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // 🌟 CORRECCIÓN 1: Fallback dinámico para convivir entre ngrok (local) y Vercel (producción)
-    // Cambiá el string de abajo por tu enlace actual de ngrok
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tu-enlace-actual.ngrok-free.app"
+    
+
+ const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || vercelUrl || "http://localhost:3000"
 
     if (process.env.MOCK_MERCADO_PAGO === "true") {
       return NextResponse.json(
