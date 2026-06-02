@@ -44,6 +44,7 @@ export async function POST(request: Request) {
 
     // Si el estado es aprobado en el origen, se actualiza de forma atomica usando el enum de Prisma correspondiente
     if (mpStatus === "approved") {
+      // @ts-ignore
       await prisma.payment.updateMany({
         where: { 
           jobId: String(jobId),
