@@ -1,4 +1,4 @@
-# 💳 FixNow - Payments App (Aplicación de Pagos y Liquidaciones)
+# 💳 FixNow - Payments App (Aplicación de Pagos)
 
 ### 1. Link al deploy de producción
 
