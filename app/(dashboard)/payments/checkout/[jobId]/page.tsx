@@ -17,6 +17,19 @@ type CheckoutResponse = {
 }
 
 type PaymentStatusResponse = {
+  found?: boolean
+  payment?: {
+    id?: string
+    jobId?: string
+    clientId?: string
+    professionalId?: string
+    amount?: number | string
+    commission?: number | string
+    status?: string
+    mpPaymentId?: string | null
+    paidAt?: string | null
+    createdAt?: string
+  }
   payment_id?: string
   job_id?: string
   amount?: number | string
@@ -26,7 +39,6 @@ type PaymentStatusResponse = {
   error?: string
   details?: string
 }
-
 export default function CheckoutJobPage() {
   const params = useParams()
   const searchParams = useSearchParams()
