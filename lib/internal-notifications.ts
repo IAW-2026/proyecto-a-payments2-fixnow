@@ -63,9 +63,9 @@ export async function notifyDriverPayout({
   const response = await fetch(
     `${process.env.DRIVER_API_URL}/api/jobs/${encodeURIComponent(
       jobId
-    )}/payout-notification`,
+    )}/payout-notifications`,
     {
-      method: "POST",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.INTERNAL_API_SECRET}`,
@@ -73,7 +73,6 @@ export async function notifyDriverPayout({
       body: JSON.stringify({
         professional_id: professionalId,
         amount,
-        status: "paid",
       }),
     }
   )

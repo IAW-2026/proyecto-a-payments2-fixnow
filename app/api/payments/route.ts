@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { PaymentStatus } from "@prisma/client"
 import { isValidServiceRequest, unauthorizedResponse } from "@/lib/internal-auth"
 
+export const dynamic = "force-dynamic"
+
 const DEFAULT_COMMISSION_RATE =
   Number(process.env.FIXNOW_COMMISSION_RATE) || 0.1
 
@@ -23,19 +25,30 @@ export async function POST(request: Request) {
       body?.commission_rate ?? body?.commissionRate ?? DEFAULT_COMMISSION_RATE
     )
 
-    if (!jobId || !clientId || !professionalId || !amount) {
+    if (!jobId || !clientId || !professionalId) {
       return NextResponse.json(
         {
           error:
-            "Faltan datos obligatorios: job_id, client_id, professional_id o amount",
+            "Faltan datos obligatorios: job_id, client_id o professional_id",
         },
         { status: 400 }
       )
     }
 
-    if (amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
-        { error: "El monto debe ser mayor a 0" },
+        { error: "El monto debe ser un número mayor a 0" },
+        { status: 422 }
+      )
+    }
+
+    if (
+      !Number.isFinite(commissionRate) ||
+      commissionRate < 0 ||
+      commissionRate > 1
+    ) {
+      return NextResponse.json(
+        { error: "commission_rate debe ser un número decimal entre 0 y 1" },
         { status: 422 }
       )
     }
@@ -51,6 +64,11 @@ export async function POST(request: Request) {
           payment_id: existingPayment.id,
           job_id: existingPayment.jobId,
           status: existingPayment.status,
+          checkout_url: `/payments/checkout/${encodeURIComponent(
+            existingPayment.jobId
+          )}?amount=${Number(existingPayment.amount)}&client_id=${encodeURIComponent(
+            existingPayment.clientId
+          )}`,
         },
         { status: 409 }
       )
@@ -79,7 +97,14 @@ export async function POST(request: Request) {
         mp_payment_id: payment.mpPaymentId,
         paid_at: payment.paidAt,
         created_at: payment.createdAt.toISOString(),
-        checkout_url: `/payments/checkout/${payment.jobId}`,
+
+        // Rider tiene que usar esto para redirigir al cliente a pagar:
+        // https://proyecto-a-payments2-fixnow.vercel.app + checkout_url
+        checkout_url: `/payments/checkout/${encodeURIComponent(
+          payment.jobId
+        )}?amount=${Number(payment.amount)}&client_id=${encodeURIComponent(
+          payment.clientId
+        )}`,
       },
       { status: 201 }
     )
