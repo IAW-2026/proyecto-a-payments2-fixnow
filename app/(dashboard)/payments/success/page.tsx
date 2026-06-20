@@ -71,9 +71,7 @@ function SuccessPageContent() {
     searchParams.get("clientId") ||
     "anonymous_client"
 
-  const returnUrl =
-    searchParams.get("return_url") ||
-    searchParams.get("returnUrl")
+
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -129,7 +127,12 @@ function SuccessPageContent() {
     window.print()
   }
 
-  const backToClientAppHref = returnUrl || "https://google.com"
+  const returnUrl =
+  searchParams.get("return_url") ||
+  searchParams.get("returnUrl")
+
+const backToClientAppHref =
+  returnUrl || "https://proyecto-a-rider-fixnow.vercel.app"
   const viewPaymentsHref = `/payments?role=rider&client_id=${encodeURIComponent(clientId)}`
   const viewSummaryHref = `/?role=rider&client_id=${encodeURIComponent(clientId)}`
   
