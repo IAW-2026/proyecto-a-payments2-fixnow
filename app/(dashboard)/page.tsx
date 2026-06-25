@@ -1,117 +1,31 @@
-import { auth } from "@clerk/nextjs/server"
-import { type CleanPayment } from "@/lib/payments-service"
-import { DashboardView } from "@/components/views/dashboard-view"
-import { prisma } from "@/lib/prisma"
-import DevPaymentsPage from "./dev/payments/page" 
+export const dynamic = "force-dynamic"
 
-// Flag de consistencia para alternar entre simulaciones locales y el entorno real de Clerk
-const MOCK_MODE = true
-
-const DEV_PROFESSIONAL_ID = "anonymous_professional"
-const DEV_CLIENT_ID = "anonymous_client"
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ professional_id?: string; client_id?: string; role?: string }>
-}) {
-  const params = await searchParams
-  const { userId } = await auth()
-
-  // -------------------------------------------------------------------------
-  // ESCENARIO ETAPA ACTUAL: MOCK_MODE ACTIVO
-  // -------------------------------------------------------------------------
-  if (MOCK_MODE && !params.role) {
-    return <DevPaymentsPage />
-  }
-
-  // -------------------------------------------------------------------------
-  // ESCENARIO ETAPA 3 / VISTAS DE ROLES: FLUJO REAL CON PRISMA Y CLERK
-  // -------------------------------------------------------------------------
-  
-  // Modo de desarrollo: Resolucion del rol basada de forma prioritaria en los parametros de la URL
-  const currentRole = params.role === "driver" || params.role === "conductor" ? "driver" : "rider"
-  
-  /* // (Etapa 3 - Descomentar cuando MOCK_MODE = false):
-  // 1. Validacion estricta de sesion para mitigar fallas de control de acceso (OWASP Top 10)
-  if (!userId) {
-    return redirect("/sign-in") 
-  }
-  
-  // 2. Consulta de metadatos seguros directamente en la sesion de Clerk
-  const client = await clerkClient()
-  const user = await client.users.getUser(userId)
-  const realUserRole = user.publicMetadata.role 
-  
-  // 3. Cruce defensivo de parametros de URL con el token firmado para prevenir escalada de privilegios
-  const currentRole = params.role === "driver" && realUserRole === "driver" ? "driver" : "rider"
-  */
-
-  const isRider = currentRole === "rider"
-  let payments: CleanPayment[] = []
-
-  // Resolucion de identificadores segun el rol activo y el estado del flag de pruebas
-  const targetUserId = isRider
-    ? (MOCK_MODE ? DEV_CLIENT_ID : (params.client_id || userId))
-    : (MOCK_MODE ? DEV_PROFESSIONAL_ID : (params.professional_id || userId))
-
-  if (targetUserId) {
-    // Consulta directa a la base de datos mapeando las claves foraneas correspondientes
-    const rawPayments = await prisma.payment.findMany({
-      where: isRider ? { clientId: targetUserId } : { professionalId: targetUserId },
-      orderBy: { createdAt: "desc" },
-    })
-    
-    // Mapeo seguro y normalizacion de tipos numericos provenientes del ORM
-    payments = rawPayments.map(p => ({
-      id: p.id,
-      jobId: p.jobId,
-      clientId: p.clientId,
-      professionalId: p.professionalId,
-      amount: Number(p.amount),
-      commission: Number(p.commission || 0),
-      netAmount: Number(p.amount) - Number(p.commission || 0),
-      paidAt: p.paidAt ? p.paidAt.toISOString() : null,
-      status: p.status, 
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt
-    }))
-  }
-
-  // 计算 Metricas financieras agregadas para el renderizado del tablero
-  let totalGenerated = 0
-  let totalCommission = 0
-  let pendingCount = 0
-
-  for (const p of payments) {
-    totalGenerated += p.amount
-    totalCommission += p.commission
-
-    if (p.status === "pending" || p.status === "processing") {
-      pendingCount++
-    }
-  }
-
-  const netAmount = totalGenerated - totalCommission
-
-  // Fragmentacion de los registros mas recientes para la vista compacta del historial
-  const recentPayments = payments.slice(0, 3).map((payment) => ({
-    id: payment.id,
-    jobId: payment.jobId,
-    amount: payment.amount,
-    commission: payment.commission,
-    netAmount: payment.netAmount,
-    status: payment.status,
-  }))
-
+export default function HomePage() {
   return (
-    <DashboardView
-      totalGenerated={totalGenerated}
-      totalCommission={totalCommission}
-      netAmount={netAmount}
-      pendingCount={pendingCount}
-      recentPayments={recentPayments}
-      userRole={currentRole}
-    />
+    <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white px-6">
+      <section className="max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-8 text-center shadow-xl">
+        <h1 className="text-3xl font-bold mb-4">FixNow Payments</h1>
+
+        <p className="text-slate-300 mb-6">
+          Servicio de pagos activo para la integración entre Rider, Driver y
+          Mercado Pago.
+        </p>
+
+        <div className="rounded-xl bg-slate-800 p-4 text-left text-sm text-slate-300">
+          <p>
+            <strong>Crear pago:</strong> POST /api/payments
+          </p>
+          <p>
+            <strong>Consultar pago:</strong> GET /api/payments/jobs/:job_id
+          </p>
+          <p>
+            <strong>Checkout:</strong> POST /api/payments/checkout
+          </p>
+          <p>
+            <strong>Webhook:</strong> POST /api/payments/webhook
+          </p>
+        </div>
+      </section>
+    </main>
   )
 }

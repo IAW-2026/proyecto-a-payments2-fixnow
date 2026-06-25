@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💳 FixNow - Payments App (Aplicación de Pagos)
 
-## Getting Started
+### 1. Link al deploy de producción
 
-First, run the development server:
+**[🔗 Visitar FixNow Payments App en Producción](https://proyecto-a-payments2-fixnow.vercel.app/)**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Listado de usuarios disponibles para realizar pruebas
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+#### Autenticación en la Plataforma (Clerk)
+- **Email:** `  payment+clerk_test@iaw.com`
+- **Contraseña:** `iawuser#`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+#### Autenticación en la Pasarela (Mercado Pago Sandbox)
+> ⚠️ **Importante:** Al momento de ser redirigido a la pasarela, inicie sesión con las siguientes credenciales de prueba para actuar como comprador ficticio (no usar cuentas reales):
+- **Email / Usuario:** `TESTUSER296946301990483714`
+- **Contraseña:** `ezRTTYwmgo`
 
-## Learn More
+#### Tarjetas de Prueba (Mercado Pago Sandbox - Argentina)
+- **Para pago EXITOSO (Aprobado):**
+  - **Número de Tarjeta:** `4517 6601 2345 6789` | **F. Expiración:** Futura | **CVV:** `123` | **Titular:** `APRO`
+- **Para pago RECHAZADO (Fondos insuficientes):**
+  - **Número de Tarjeta:** `4517 6601 2345 6995` | **Titular:** `CONT`
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Instrucciones para utilizar la aplicación
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Inicio de sesión:** Autentíquese en la plataforma utilizando las credenciales de Clerk provistas.
+2. **Generación de la Preferencia:** En la interfaz de pagos pendientes, seleccione una orden. Al presionar pagar, se inicializará el registro en la base de datos local en estado `pending` y se generará el token de Mercado Pago.
+3. **Simulación de Pago:** En la pasarela externa, inicie sesión con el usuario de prueba de Mercado Pago (se sugiere usar modo incógnito para evitar conflictos de sesión) y pague con la tarjeta `APRO`.
+4. **Procesamiento de Webhook:** Al finalizar, Mercado Pago enviará una notificación asíncrona HTTP `POST` a nuestro servidor en producción. El webhook validará el evento, actualizará el registro local a estado `paid` y estampará la marca de tiempo de auditoría. La interfaz web se actualizará automáticamente mostrando la transacción cobrada.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. Descripción del proyecto
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+FixNow es una plataforma integral diseñada para organizar, transparentar y facilitar la contratación de servicios de mantenimiento para el hogar (plomería, electricidad y gas). Dentro de este ecosistema, la **Payments App** actúa como la pasarela financiera centralizada encargada de gestionar de forma segura todo el ciclo de facturación, cobro y posterior liquidación de transacciones.
+
+Cuando una solicitud de servicio se da por finalizada, la aplicación toma el control integrando de forma nativa la API de **Mercado Pago (Checkout Pro)**. Esto permite procesar pagos electrónicos de clientes mediante múltiples medios de pago en un entorno seguro y aislado.
+
+La aplicación calcula de forma automática y atómica la comisión correspondiente para la plataforma, registra las marcas de tiempo de auditoría y actualiza el estado de los trabajos mediante el uso de **Webhooks**, garantizando la consistencia eventual y la trazabilidad financiera de todo el sistema.
+
+---
+
+### 5. Notas
+
+- **Arquitectura de Webhooks en Producción:** Se eliminó por completo el uso de túneles locales (Ngrok), migrando la lógica de escucha a una infraestructura 100% nativa en la nube bajo la ruta de producción `/api/payments/webhook`, garantizando disponibilidad absoluta para las respuestas asíncronas de Mercado Pago.
+- **Auditoría de Datos:** El modelo incluye campos de control estricto: `createdAt` (inicio del trámite pendiente) y `updatedAt` (modificación milimétrica ante cambios de estado). La convivencia de `updatedAt` junto al campo `paid_at` de Mercado Pago permite contrastar técnicamente los tiempos de respuesta del servidor frente a la acreditación externa de fondos.
+- **Datos Precargados:** La base de datos cuenta con un historial extenso de transacciones registradas, permitiendo evaluar la ordenación cronológica descendente, estados de cuenta analíticos y filtros de búsqueda sobre datos reales acumulados.

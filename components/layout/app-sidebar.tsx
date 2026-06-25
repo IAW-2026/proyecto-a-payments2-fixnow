@@ -4,7 +4,7 @@ import { SidebarUser } from "@/components/layout/sidebar-user"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useSearchParams } from "next/navigation"
-import { CreditCard, LayoutDashboard } from "lucide-react"
+import { CreditCard, LayoutDashboard, FlaskConical } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const MOCK_MODE = true
@@ -86,29 +86,42 @@ export function AppSidebar({ forcedRole }: AppSidebarProps) {
             </p>
           </div>
         ) : (
-          navItems.map((item) => {
-            const Icon = item.icon
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href)
+          <>
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href)
 
-            return (
+              return (
+                <Link
+                  key={item.href}
+                  href={buildHref(item.href)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className="size-5" />
+                  {item.label}
+                </Link>
+              )
+            })}
+
+          
+            <div className="pt-4 mt-2 border-t border-border/60">
               <Link
-                key={item.href}
-                href={buildHref(item.href)}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
+                href="/dev/payments"
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
-                <Icon className="size-5" />
-                {item.label}
+                
+                <span>Volver a Entorno de Test</span>
               </Link>
-            )
-          })
+            </div>
+          </>
         )}
       </nav>
 

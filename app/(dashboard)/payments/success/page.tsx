@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import {
@@ -33,7 +33,24 @@ type PaymentStatusResponse = {
   error?: string
 }
 
+// 🌟 1. FUNCIÓN PRINCIPAL: Envuelve el contenido real en Suspense para aprobar el build de Vercel
 export default function SuccessPage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="flex min-h-[70vh] flex-col items-center justify-center bg-slate-50">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="mt-2 text-sm font-medium text-slate-500">Cargando módulo de pagos...</p>
+        </div>
+      }
+    >
+      <SuccessPageContent />
+    </Suspense>
+  )
+}
+
+// 🌟 2. TU COMPONENTE ORIGINAL: Mantiene toda tu lógica intacta
+function SuccessPageContent() {
   const searchParams = useSearchParams()
 
   const jobId =
@@ -54,9 +71,7 @@ export default function SuccessPage() {
     searchParams.get("clientId") ||
     "anonymous_client"
 
-  const returnUrl =
-    searchParams.get("return_url") ||
-    searchParams.get("returnUrl")
+
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,7 +87,7 @@ export default function SuccessPage() {
         } else if (collectionId) {
           statusUrl = `/api/payments/status?collection_id=${encodeURIComponent(collectionId)}`
         } else {
-          setError("No se recibio un identificador valido del pago.")
+          setError("No se recibió un identificador válido del pago.")
           return
         }
 
@@ -112,7 +127,12 @@ export default function SuccessPage() {
     window.print()
   }
 
-  const backToClientAppHref = returnUrl || "https://google.com"
+  const returnUrl =
+  searchParams.get("return_url") ||
+  searchParams.get("returnUrl")
+
+const backToClientAppHref =
+  returnUrl || "https://proyecto-a-rider-fixnow.vercel.app"
   const viewPaymentsHref = `/payments?role=rider&client_id=${encodeURIComponent(clientId)}`
   const viewSummaryHref = `/?role=rider&client_id=${encodeURIComponent(clientId)}`
   
@@ -196,7 +216,7 @@ export default function SuccessPage() {
 
         <p className="mt-1 text-sm text-slate-400">
           {isPaid && "El pago fue confirmado correctamente por FixNow."}
-          {isPending && "Mercado Pago todavia esta procesando la operacion. Podes volver a revisar en unos instantes."}
+          {isPending && "Mercado Pago todavía está procesando la operación. Podes volver a revisar en unos instantes."}
           {isFailed && "No pudimos acreditar este pago. Podes volver a intentarlo desde la pantalla de pagos."}
         </p>
 
