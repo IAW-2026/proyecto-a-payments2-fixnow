@@ -1,35 +1,30 @@
 "use client"
 
-import { useSearchParams } from "next/navigation"
+import { UserButton, useUser } from "@clerk/nextjs"
 
 export function SidebarUser() {
-  const searchParams = useSearchParams()
+  const { user, isLoaded } = useUser()
 
-  const role = searchParams.get("role")?.toLowerCase()
-  const clientId =
-    searchParams.get("client_id") || searchParams.get("clientId")
-  const professionalId =
-    searchParams.get("professional_id") || searchParams.get("professionalId")
-
-  const isRider = role === "rider" || Boolean(clientId)
-
-  const displayName = isRider ? "Cliente FixNow" : "Profesional FixNow"
-
-  const displayEmail = isRider
-    ? clientId || "anonymous_client"
-    : professionalId || "anonymous_professional"
+  if (!isLoaded) {
+    return (
+      <div className="border-t border-border p-4">
+        <div className="h-10 rounded-lg bg-muted" />
+      </div>
+    )
+  }
 
   return (
     <div className="border-t border-border p-4">
       <div className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
-          {isRider ? "C" : "P"}
-        </div>
+        <UserButton />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{displayName}</p>
+          <p className="truncate text-sm font-medium">
+            {user?.fullName ?? "Usuario FixNow"}
+          </p>
+
           <p className="truncate text-xs text-muted-foreground">
-            {displayEmail}
+            {user?.primaryEmailAddress?.emailAddress ?? "Sin email"}
           </p>
         </div>
       </div>
