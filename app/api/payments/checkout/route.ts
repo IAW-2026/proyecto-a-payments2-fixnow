@@ -10,6 +10,16 @@ export async function POST(request: Request) {
     const paymentId = body?.paymentId
     const jobId = body?.jobId
 
+    const serviceType =
+      typeof body?.serviceType === "string" && body.serviceType.trim()
+        ? body.serviceType.trim()
+        : "Servicio Técnico"
+
+    const jobDescription =
+      typeof body?.description === "string" && body.description.trim()
+        ? body.description.trim()
+        : "Detalle del trabajo no disponible."
+
     if (!paymentId && !jobId) {
       return NextResponse.json(
         { error: "Falta paymentId o jobId" },
@@ -71,35 +81,45 @@ export async function POST(request: Request) {
       )
     }
 
+    const successUrl = new URL("/payments/success", baseUrl)
+    successUrl.searchParams.set("role", "rider")
+    successUrl.searchParams.set("job_id", payment.jobId)
+    successUrl.searchParams.set("client_id", payment.clientId)
+    successUrl.searchParams.set("amount", String(Number(payment.amount)))
+    successUrl.searchParams.set("service_type", serviceType)
+    successUrl.searchParams.set("description", jobDescription)
+
+    const failureUrl = new URL("/payments/failure", baseUrl)
+    failureUrl.searchParams.set("role", "rider")
+    failureUrl.searchParams.set("job_id", payment.jobId)
+    failureUrl.searchParams.set("client_id", payment.clientId)
+    failureUrl.searchParams.set("service_type", serviceType)
+    failureUrl.searchParams.set("description", jobDescription)
+
+    const pendingUrl = new URL("/payments/pending", baseUrl)
+    pendingUrl.searchParams.set("role", "rider")
+    pendingUrl.searchParams.set("job_id", payment.jobId)
+    pendingUrl.searchParams.set("client_id", payment.clientId)
+    pendingUrl.searchParams.set("service_type", serviceType)
+    pendingUrl.searchParams.set("description", jobDescription)
+
     const preferenceBody = {
       items: [
         {
-          title: `Servicio de FixNow - Trabajo #${payment.jobId.slice(-6)}`,
+          title: `${serviceType} - Trabajo #${payment.jobId.slice(-6)}`,
+          description: jobDescription,
           unit_price: Number(payment.amount),
           quantity: 1,
           currency_id: "ARS",
         },
       ],
       back_urls: {
-        success: `${baseUrl}/payments/success?role=rider&job_id=${encodeURIComponent(
-          payment.jobId
-        )}&client_id=${encodeURIComponent(payment.clientId)}&amount=${Number(
-          payment.amount
-        )}`,
-        failure: `${baseUrl}/payments/failure?role=rider&job_id=${encodeURIComponent(
-          payment.jobId
-        )}&client_id=${encodeURIComponent(payment.clientId)}`,
-        pending: `${baseUrl}/payments/pending?role=rider&job_id=${encodeURIComponent(
-          payment.jobId
-        )}&client_id=${encodeURIComponent(payment.clientId)}`,
+        success: successUrl.toString(),
+        failure: failureUrl.toString(),
+        pending: pendingUrl.toString(),
       },
       notification_url: `${baseUrl}/api/payments/webhook?source_news=webhooks`,
       external_reference: payment.jobId,
-
-      // Importante:
-      // Se comenta auto_return porque Mercado Pago estaba devolviendo:
-      // error: "invalid_auto_return"
-      // auto_return: "approved",
 
       metadata: {
         payment_id: payment.id,
@@ -107,6 +127,8 @@ export async function POST(request: Request) {
         client_id: payment.clientId,
         professional_id: payment.professionalId,
         calculated_commission: Number(payment.commission),
+        service_type: serviceType,
+        job_description: jobDescription,
       },
     }
 
@@ -186,6 +208,8 @@ export async function POST(request: Request) {
         mock: false,
         paymentId: payment.id,
         jobId: payment.jobId,
+        serviceType,
+        description: jobDescription,
         checkout_url: checkoutUrl,
       },
       { status: 201 }

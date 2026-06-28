@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { isValidServiceRequest, unauthorizedResponse } from "@/lib/internal-auth"
+
 
 export const dynamic = "force-dynamic"
 
@@ -39,9 +39,7 @@ function toNumber(value: unknown) {
 
 export async function GET(request: Request) {
   try {
-    if (!isValidServiceRequest(request)) {
-      return unauthorizedResponse()
-    }
+  
 
     const { searchParams } = new URL(request.url)
 

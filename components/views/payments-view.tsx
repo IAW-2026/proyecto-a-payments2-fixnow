@@ -22,7 +22,7 @@ export function PaymentsView({ payments, userRole }: PaymentsViewProps) {
       <PageHeader title={title} subtitle={subtitle}>
         {/* Reemplazo semantico de navegacion para cumplir con los estandares de rendimiento del framework */}
         <Link
-          href="https://www.google.com"
+          href="https://driver-fixnow.vercel.app"
           className="group flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold shadow-sm hover:bg-muted hover:text-foreground transition-all"
         >
           <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
