@@ -90,9 +90,13 @@ export function DashboardView({
       >
         {/* Optimizacion de navegacion interna mediante el uso de Link para evitar destruccion del estado */}
         <Link
-          href="https://www.google.com"
-          className="group flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold shadow-sm hover:bg-muted hover:text-foreground transition-all"
-        >
+  href={
+    isClient
+      ? "https://proyecto-a-rider-fixnow.vercel.app/dashboard"
+      : "https://driver-fixnow.vercel.app/"
+  }
+  className="group flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold shadow-sm hover:bg-muted hover:text-foreground transition-all"
+>
           <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
           <span>Volver a App {isClient ? "Cliente" : "Profesional"}</span>
         </Link>

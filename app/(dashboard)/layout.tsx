@@ -17,12 +17,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     searchParams.has("professionalId")
 
   // Se oculta la barra si es checkout/success, si es la raíz sin parámetros, o si es la ruta explícita de pruebas
-  const isCheckoutPage = 
-    (pathname === "/" && !hasRoleOrId) || 
-    pathname.includes("/dev/payments") || 
-    pathname.includes("/payments/summary") || 
-    pathname.includes("/checkout") ||
-    pathname.includes("/payments/success")
+  const isCheckoutPage =
+  pathname.includes("/dev/payments") ||
+  pathname.includes("/checkout") ||
+  pathname.includes("/payments/success")
 
   if (isCheckoutPage) {
     return (

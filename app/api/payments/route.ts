@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { PaymentStatus } from "@prisma/client"
-import { isValidServiceRequest, unauthorizedResponse } from "@/lib/internal-auth"
+
 
 export const dynamic = "force-dynamic"
 
@@ -10,9 +10,7 @@ const DEFAULT_COMMISSION_RATE =
 
 export async function POST(request: Request) {
   try {
-    if (!isValidServiceRequest(request)) {
-      return unauthorizedResponse()
-    }
+    
 
     const body = await request.json().catch(() => null)
 

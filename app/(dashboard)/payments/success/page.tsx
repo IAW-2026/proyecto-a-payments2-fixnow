@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, Suspense } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import {
@@ -29,28 +29,27 @@ type PaymentStatusResponse = {
     mpPaymentId?: string | null
     paidAt: string | null
     createdAt?: string
+    serviceType?: string | null
+    description?: string | null
+    jobDescription?: string | null
   } | null
   error?: string
 }
 
-// 🌟 1. FUNCIÓN PRINCIPAL: Envuelve el contenido real en Suspense para aprobar el build de Vercel
-export default function SuccessPage() {
+// Renderizado directo sobre el fondo oscuro de tu app (sin tarjeta blanca)
+function SuccessLoadingCard() {
   return (
-    <Suspense 
-      fallback={
-        <div className="flex min-h-[70vh] flex-col items-center justify-center bg-slate-50">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <p className="mt-2 text-sm font-medium text-slate-500">Cargando módulo de pagos...</p>
-        </div>
-      }
-    >
-      <SuccessPageContent />
-    </Suspense>
+    <div className="flex flex-col items-center justify-center p-12 text-center antialiased">
+      <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+      <p className="mt-4 text-base font-medium text-slate-300">
+        Consultando estado del pago...
+      </p>
+    </div>
   )
 }
 
-// 🌟 2. TU COMPONENTE ORIGINAL: Mantiene toda tu lógica intacta
-function SuccessPageContent() {
+// 1. Eliminamos el componente intermediario y el <Suspense> que causaba el conflicto con los layouts padres
+export default function SuccessPage() {
   const searchParams = useSearchParams()
 
   const jobId =
@@ -71,7 +70,16 @@ function SuccessPageContent() {
     searchParams.get("clientId") ||
     "anonymous_client"
 
+  const serviceTypeFromUrl =
+    searchParams.get("service_type") ||
+    searchParams.get("serviceType") ||
+    "Servicio Técnico"
 
+  const descriptionFromUrl =
+    searchParams.get("description") ||
+    searchParams.get("job_description") ||
+    searchParams.get("jobDescription") ||
+    "Detalle del trabajo no disponible."
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -85,7 +93,9 @@ function SuccessPageContent() {
         if (jobId) {
           statusUrl = `/api/payments/status?job_id=${encodeURIComponent(jobId)}`
         } else if (collectionId) {
-          statusUrl = `/api/payments/status?collection_id=${encodeURIComponent(collectionId)}`
+          statusUrl = `/api/payments/status?collection_id=${encodeURIComponent(
+            collectionId
+          )}`
         } else {
           setError("No se recibió un identificador válido del pago.")
           return
@@ -102,7 +112,9 @@ function SuccessPageContent() {
         const data: PaymentStatusResponse = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || "No se pudo consultar el estado del pago.")
+          throw new Error(
+            data.error || "No se pudo consultar el estado del pago."
+          )
         }
 
         if (!data.found || !data.payment) {
@@ -112,7 +124,9 @@ function SuccessPageContent() {
 
         setPayment(data.payment)
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : "Error desconocido"
+        const errorMessage =
+          err instanceof Error ? err.message : "Error desconocido"
+
         console.error("Error consultando estado del pago:", errorMessage)
         setError(errorMessage)
       } finally {
@@ -128,42 +142,53 @@ function SuccessPageContent() {
   }
 
   const returnUrl =
-  searchParams.get("return_url") ||
-  searchParams.get("returnUrl")
+    searchParams.get("return_url") || searchParams.get("returnUrl")
 
-const backToClientAppHref =
-  returnUrl || "https://proyecto-a-rider-fixnow.vercel.app"
-  const viewPaymentsHref = `/payments?role=rider&client_id=${encodeURIComponent(clientId)}`
-  const viewSummaryHref = `/?role=rider&client_id=${encodeURIComponent(clientId)}`
-  
+  const backToClientAppHref =
+    returnUrl || "https://proyecto-a-rider-fixnow.vercel.app/dashboard"
+
+  const viewPaymentsHref = `/payments?role=rider&client_id=${encodeURIComponent(
+    clientId
+  )}`
+
+  const viewSummaryHref = `/?role=rider&client_id=${encodeURIComponent(
+    clientId
+  )}`
+
   const retryPaymentHref = payment?.jobId
-    ? `/payments/checkout/${encodeURIComponent(payment.jobId)}?amount=${encodeURIComponent(payment.amount)}&client_id=${encodeURIComponent(clientId)}`
+    ? `/payments/checkout/${encodeURIComponent(
+        payment.jobId
+      )}?amount=${encodeURIComponent(
+        payment.amount
+      )}&client_id=${encodeURIComponent(
+        clientId
+      )}&service_type=${encodeURIComponent(
+        serviceTypeFromUrl
+      )}&description=${encodeURIComponent(descriptionFromUrl)}`
     : viewPaymentsHref
 
+  // 2. Si está cargando, interceptamos acá y mostramos el texto limpio sobre fondo oscuro
   if (loading) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="mt-2 text-sm font-medium text-slate-500">
-          Consultando estado del pago...
-        </p>
+      <div className="flex min-h-screen w-full items-center justify-center">
+        <SuccessLoadingCard />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center bg-slate-50 p-4 text-center">
-        <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-8 shadow-xl">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+      <div className="flex min-h-screen w-full items-center justify-center p-4">
+        <div className="flex w-full max-w-md flex-col items-center justify-center p-6 text-center antialiased">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 text-red-400">
             <AlertCircle className="h-8 w-8" />
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-xl font-bold text-white">
             No se pudo validar el pago
           </h1>
 
-          <p className="mt-2 text-sm text-slate-500">{error}</p>
+          <p className="mt-2 text-sm text-slate-400">{error}</p>
 
           <Link
             href={viewPaymentsHref}
@@ -181,145 +206,168 @@ const backToClientAppHref =
   const isPending = status === "pending" || status === "processing"
   const isFailed = status === "failed"
 
-  const displayJobId = payment?.jobId || jobId || collectionId || "Sin identificar"
+  const displayJobId =
+    payment?.jobId || jobId || collectionId || "Sin identificar"
+
   const displayAmount = Number(payment?.amount || amountFromUrl || 0)
 
+  const displayServiceType =
+    payment?.serviceType || serviceTypeFromUrl || "Servicio Técnico"
+
+  const displayDescription =
+    payment?.description ||
+    payment?.jobDescription ||
+    descriptionFromUrl ||
+    "Detalle del trabajo no disponible."
+
   return (
-    <div className="relative flex min-h-[70vh] flex-col items-center justify-center bg-slate-50 p-4 antialiased">
-      <div
-        id="receipt-print-area"
-        className="flex w-full max-w-md flex-col items-center rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-xl"
-      >
-        {isPaid && (
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-emerald-500">
-            <CheckCircle2 className="h-10 w-10 stroke-[1.5]" />
-          </div>
-        )}
-
-        {isPending && (
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-amber-100 bg-amber-50 text-amber-500">
-            <Clock className="h-10 w-10 stroke-[1.5]" />
-          </div>
-        )}
-
-        {isFailed && (
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-red-100 bg-red-50 text-red-500">
-            <AlertCircle className="h-10 w-10 stroke-[1.5]" />
-          </div>
-        )}
-
-        <h1 className="text-2xl font-bold tracking-tight text-slate-800">
-          {isPaid && "¡Pago recibido!"}
-          {isPending && "Pago en proceso"}
-          {isFailed && "Pago no acreditado"}
-        </h1>
-
-        <p className="mt-1 text-sm text-slate-400">
-          {isPaid && "El pago fue confirmado correctamente por FixNow."}
-          {isPending && "Mercado Pago todavía está procesando la operación. Podes volver a revisar en unos instantes."}
-          {isFailed && "No pudimos acreditar este pago. Podes volver a intentarlo desde la pantalla de pagos."}
-        </p>
-
-        <div className="my-5 w-full border-b border-dashed border-slate-200" />
-
-        <div className="w-full space-y-3.5 rounded-xl border border-slate-100 bg-slate-50 p-5 text-left">
-          <div className="flex justify-between gap-4 text-sm">
-            <span className="text-slate-400">Trabajo:</span>
-            <span className="font-semibold text-slate-700">
-              #{String(displayJobId).slice(-10)}
-            </span>
-          </div>
-
-          {payment?.mpPaymentId && (
-            <div className="flex justify-between gap-4 text-sm">
-              <span className="text-slate-400">Pago MP:</span>
-              <span className="font-semibold text-slate-700">
-                #{payment.mpPaymentId}
-              </span>
+    <div className="flex min-h-screen w-full items-center justify-center p-4">
+      <div className="relative flex w-full max-w-md flex-col items-center justify-center antialiased">
+        {/* Comprobante original blanco de la imagen image_ed7d3c.png */}
+        <div
+          id="receipt-print-area"
+          className="flex w-full flex-col items-center rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-xl"
+        >
+          {isPaid && (
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-emerald-500">
+              <CheckCircle2 className="h-10 w-10 stroke-[1.5]" />
             </div>
           )}
 
-          <div className="flex justify-between gap-4 text-sm">
-            <span className="text-slate-400">Detalle:</span>
-            <span className="font-semibold text-slate-700">
-              Servicio FixNow
-            </span>
+          {isPending && (
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-amber-100 bg-amber-50 text-amber-500">
+              <Clock className="h-10 w-10 stroke-[1.5]" />
+            </div>
+          )}
+
+          {isFailed && (
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-red-100 bg-red-50 text-red-500">
+              <AlertCircle className="h-10 w-10 stroke-[1.5]" />
+            </div>
+          )}
+
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+            {isPaid && "¡Pago recibido!"}
+            {isPending && "Pago en proceso"}
+            {isFailed && "Pago no acreditado"}
+          </h1>
+
+          <p className="mt-1 text-sm text-slate-400">
+            {isPaid && "El pago fue confirmado correctamente por FixNow."}
+            {isPending &&
+              "Mercado Pago todavía está procesando la operación. Podés volver a revisar en unos instantes."}
+            {isFailed &&
+              "No pudimos acreditar este pago. Podés volver a intentarlo desde la pantalla de pagos."}
+          </p>
+
+          <div className="my-5 w-full border-b border-dashed border-slate-200" />
+
+          <div className="w-full space-y-3.5 rounded-xl border border-slate-100 bg-slate-50 p-5 text-left">
+            <div className="flex justify-between gap-4 text-sm">
+              <span className="text-slate-400">Trabajo:</span>
+              <span className="font-semibold text-slate-700">
+                #{String(displayJobId).slice(-10)}
+              </span>
+            </div>
+
+            {payment?.mpPaymentId && (
+              <div className="flex justify-between gap-4 text-sm">
+                <span className="text-slate-400">Pago MP:</span>
+                <span className="font-semibold text-slate-700">
+                  #{payment.mpPaymentId}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between gap-4 text-sm">
+              <span className="text-slate-400">Especialidad:</span>
+              <span className="font-semibold text-slate-700">
+                {displayServiceType}
+              </span>
+            </div>
+
+            <div className="space-y-1 text-sm">
+              <span className="text-slate-400">Detalle del trabajo:</span>
+              <p className="rounded-lg border border-slate-200 bg-white p-3 text-xs font-medium leading-relaxed text-slate-700">
+                {displayDescription}
+              </p>
+            </div>
+
+            <div className="flex justify-between gap-4 text-sm">
+              <span className="text-slate-400">Estado:</span>
+              <span
+                className={
+                  isPaid
+                    ? "rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-600"
+                    : isPending
+                      ? "rounded-full border border-amber-100 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-600"
+                      : "rounded-full border border-red-100 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-600"
+                }
+              >
+                {isPaid && "Acreditado"}
+                {isPending && "Procesando"}
+                {isFailed && "Fallido"}
+              </span>
+            </div>
+
+            <div className="my-1 w-full border-b border-slate-200/60" />
+
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-sm font-medium text-slate-500">Monto:</span>
+              <span className="text-2xl font-black text-slate-800">
+                ${displayAmount.toLocaleString("es-AR")}
+              </span>
+            </div>
           </div>
 
-          <div className="flex justify-between gap-4 text-sm">
-            <span className="text-slate-400">Estado:</span>
-            <span
-              className={
-                isPaid
-                  ? "rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-600"
-                  : isPending
-                    ? "rounded-full border border-amber-100 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-600"
-                    : "rounded-full border border-red-100 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-600"
-              }
+          {isPaid && (
+            <button
+              type="button"
+              onClick={handleDownloadPDF}
+              className="group mt-4 flex cursor-pointer items-center gap-2 text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700 print:hidden"
             >
-              {isPaid && "Acreditado"}
-              {isPending && "Procesando"}
-              {isFailed && "Fallido"}
-            </span>
-          </div>
-
-          <div className="my-1 w-full border-b border-slate-200/60" />
-
-          <div className="flex items-baseline justify-between pt-1">
-            <span className="text-sm font-medium text-slate-500">
-              Monto:
-            </span>
-            <span className="text-2xl font-black text-slate-800">
-              ${displayAmount.toLocaleString("es-AR")}
-            </span>
-          </div>
+              <Download className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+              Descargar comprobante
+            </button>
+          )}
         </div>
 
-        {isPaid && (
-          <button
-            type="button"
-            onClick={handleDownloadPDF}
-            className="group mt-4 flex cursor-pointer items-center gap-2 text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700 print:hidden"
-          >
-            <Download className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
-            Descargar comprobante
-          </button>
-        )}
-      </div>
-
-      <div className="mt-6 flex w-full max-w-md flex-col gap-3 print:hidden">
-        <Link
-          href={backToClientAppHref}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-medium text-white shadow-md transition-all hover:bg-slate-800"
-        >
-          <Smartphone className="h-4 w-4" />
-          Volver a Cliente App
-        </Link>
-
-        <Link
-          href={viewPaymentsHref}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-medium text-white shadow-md shadow-blue-600/10 transition-all hover:bg-blue-700"
-        >
-          <Receipt className="h-4 w-4" />
-          Ver mis pagos
-        </Link>
-
-        {isFailed && (
+        {/* Botones inferiores fuera del área imprimible */}
+        <div className="mt-6 flex w-full flex-col gap-3 print:hidden">
           <Link
-            href={retryPaymentHref}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 text-sm font-medium text-white transition-all hover:bg-red-700"
+            href={backToClientAppHref}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-medium text-white shadow-md transition-all hover:bg-slate-800"
           >
-            Reintentar pago
+            <Smartphone className="h-4 w-4" />
+            Volver a Cliente App
           </Link>
-        )}
 
-        <Link
-          href={viewSummaryHref}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-600 transition-all hover:bg-slate-50"
-        >
-          <Landmark className="h-4 w-4" />
-          Ver mi resumen
-        </Link>
+          <Link
+            href={viewPaymentsHref}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-medium text-white shadow-md shadow-blue-600/10 transition-all hover:bg-blue-700"
+          >
+            <Receipt className="h-4 w-4" />
+            Ver mis pagos
+          </Link>
+
+          {isFailed && (
+            <Link
+              href={retryPaymentHref}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 text-sm font-medium text-white transition-all hover:bg-red-700"
+            >
+              <AlertCircle className="h-4 w-4" />
+              Reintentar pago
+            </Link>
+          )}
+
+          <Link
+            href={viewSummaryHref}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-600 transition-all hover:bg-slate-50"
+          >
+            <Landmark className="h-4 w-4" />
+            Ver mi resumen
+          </Link>
+        </div>
       </div>
     </div>
   )

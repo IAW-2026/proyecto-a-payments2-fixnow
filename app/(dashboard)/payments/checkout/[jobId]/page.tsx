@@ -158,6 +158,8 @@ export default function CheckoutJobPage() {
         },
         body: JSON.stringify({
           jobId,
+          serviceType,
+          description,
         }),
       })
 

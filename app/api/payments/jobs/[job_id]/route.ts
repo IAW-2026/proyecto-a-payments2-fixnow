@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { isValidServiceRequest, unauthorizedResponse } from "@/lib/internal-auth"
+
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ job_id: string }> }
 ) {
   try {
-    if (!isValidServiceRequest(request)) {
-      return unauthorizedResponse()
-    }
-
+    
     const { job_id } = await params
 
     const payment = await prisma.payment.findUnique({
