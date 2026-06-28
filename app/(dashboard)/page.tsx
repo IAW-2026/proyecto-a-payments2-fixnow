@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import {
   getClientPayments,
   getProfessionalPayments,
@@ -23,6 +24,17 @@ export default async function HomePage({
 }) {
   const params = await searchParams
 
+  const hasContext =
+    Boolean(getParamValue(params.role)) ||
+    Boolean(getParamValue(params.client_id)) ||
+    Boolean(getParamValue(params.clientId)) ||
+    Boolean(getParamValue(params.professional_id)) ||
+    Boolean(getParamValue(params.professionalId))
+
+  if (!hasContext) {
+    redirect("/dev/payments")
+  }
+
   const role = (getParamValue(params.role) || "rider").toLowerCase()
 
   const clientId =
@@ -34,6 +46,7 @@ export default async function HomePage({
     getParamValue(params.professional_id) ||
     getParamValue(params.professionalId) ||
     DEV_PROFESSIONAL_ID
+
 
   const currentUserId = role === "rider" ? clientId : professionalId
 
